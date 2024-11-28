@@ -7,5 +7,6 @@ set libs=user32.lib
 
 mkdir ..\build
 pushd ..\build
-cl /Zi %files% /link %libs% /OUT:"main.exe"
+REM cl /Zi %files% /link %libs% /OUT:"main.exe"
+cl %files% /link %libs% /OUT:"Currency Converter.exe"
 popd

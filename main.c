@@ -1,16 +1,19 @@
 /*
 	A simple Currency Converter from doller value written in Japanese language to yen value.
 	This is a small program to help my own work.
+	v 1.0 -> First complete
+	v 1.1 -> Added auto rounding up function
 */
 #include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
+#include <math.h> // round()
 
 #include "tk_string.h" // my own snipets for string related functions. This is for string replacement.
 
 #define MAX_TEXT_LEN 100
+#define VERSION "Currency Converter v1.1"
 
 typedef enum{
     ERROR_INVALID_UNIT, // Unknown unit specifier passed
@@ -26,22 +29,29 @@ enum{
 
 /* Function prototypes */
 void show_error(error_type error);
-void ask_and_set_currency_rate(float *rate);
+void ask_and_set_currency_rate(double *rate);
+void mold_number(int* lower_unit_num, int* higher_unit_num);
+void create_output_str(char* o_str, int chou, int oku, int man, int nashi);
 
 int main(char argc, char** argv){
-    float currency_rate = 0.0;
+    double currency_rate = 0.0;
+	
+	unsigned int dollar;
+	unsigned int yen;
+        
+	char input[MAX_TEXT_LEN] = {0}; 	// User input string
+	char output[MAX_TEXT_LEN] = {0}; 	// Output string
+	char *temp; 						// The cooked string bt tkstr lib
+	
+	int unit; 							// The unit that user specify
+	int chou, oku, man, nashi; 			// These are Japanese number unit.
+	
+	int *lower_unit_num = 0; // This is for number molding
+	int *higher_unit_num = 0; // This is for number molding
     
-    ask_and_set_currency_rate(&currency_rate);
+	ask_and_set_currency_rate(&currency_rate);
     
     if (currency_rate != 0.0){
-        unsigned int dollar;
-		unsigned int yen;
-            
-		char input[MAX_TEXT_LEN] = {0}; 	// User input string
-		char output[MAX_TEXT_LEN] = {0}; 	// Output string
-		char *temp; 						// The cooked string bt tkstr lib
-		int unit; 							// The unit that user specify
-		int chou, oku, man, nashi; 			// These are Japanese number unit.
 		
 		for (;;){
 			chou = 0;
@@ -52,7 +62,7 @@ int main(char argc, char** argv){
 			/*Shows "how to" on screen */
             system("cls");
 			printf("\n");
-			printf("==== Currency Converter v1.0　==== \n");
+			printf("==== %s　==== \n", VERSION);
 			printf("\n");
             printf("設定レート = %.2f　です。\n", currency_rate);
 			printf("\n");
@@ -109,37 +119,37 @@ int main(char argc, char** argv){
             dollar = atoi(temp);
 			free(temp); // free memory address that passed from tkstr library.
             
-            float quotient, remainder;
-			float n; // This contains the value which will be separated into quotient & remaidner later
+            double quotient, remainder;
+            double n; // This contains the value which will be separated into quotient & remaidner later
 			int count = unit;
 			
-			yen = dollar * currency_rate;
+			yen = (double)dollar * currency_rate;
 			n = yen / 10000.0;
             
 			do{
 				/* Separate n into quotient & remainder*/
-				quotient = floor((double)n);
+				quotient = floor(n);
                 remainder = n - quotient;
                 
 				switch (count){
 					case UNIT_N:{
-						nashi = (int)(remainder * 10000.0f);
+						nashi = (int)(remainder * 10000.0);
 					}break;
 					
 					case UNIT_M:{
-                        man = (int)(remainder * 10000.0f);
+                        man = (int)(remainder * 10000.0);
                     }break;
                     
                     case UNIT_O:{
-                        oku = (int)(remainder * 10000.0f);
+                        oku = (int)(remainder * 10000.0);
                     }break;
                     
                     case UNIT_C:{
-                        chou = (int)(remainder * 10000.0f);
+                        chou = (int)(remainder * 10000.0);
                     }break;
                 }
 				
-				n = n / 10000.0f;
+				n = n / 10000.0;
                 count++;
 				
             }while(quotient > 9999);
@@ -147,57 +157,44 @@ int main(char argc, char** argv){
 			/* After setting remainders to appropriate units, 
 			set remained quotient to the biggest unit.*/
 			switch (count){
-                    case UNIT_M:{
-						man = (int)quotient;
-					}break;
-					
-					case UNIT_O:{
-                        oku = (int)quotient;
-                    }break;
-                    
-                    case UNIT_C:{
-                        chou = (int)quotient;
-                    }break;
-                }
+                case UNIT_M:{
+                    man = (int)quotient;
+                }break;
+                
+                case UNIT_O:{
+                    oku = (int)quotient;
+                }break;
+                
+                case UNIT_C:{
+                    chou = (int)quotient;
+                }break;
+            }
+			
+			/* Molding number*/
+			/* Mold only if unit is 'nashi', 'man' or 'oku'*/
+			switch (unit){
+				case UNIT_N:{
+					lower_unit_num = &nashi;
+					higher_unit_num = &man;
+				}break;
+				
+				case UNIT_M:{
+					lower_unit_num = &man;
+					higher_unit_num = &oku;
+				}break;
+				
+				case UNIT_O:{
+					lower_unit_num = &oku;
+					higher_unit_num = &chou;
+				}break;
+			}
+			
+			if (lower_unit_num != 0 && higher_unit_num != 0)
+				mold_number(lower_unit_num, higher_unit_num);
 			
 			/* Creating an output string */
-			if (unit == UNIT_N)
-			{
-                if (chou !=0 && oku != 0 && man != 0 && nashi != 0){
-					sprintf_s(output, MAX_TEXT_LEN * sizeof(char), "（約%d兆%d億%d万%d円）",chou, oku, man, nashi);
-				}
-				else if (oku != 0 && man != 0 && nashi != 0){
-					sprintf_s(output, MAX_TEXT_LEN * sizeof(char), "（約%d億%d万%d円）",oku, man, nashi);
-				}
-				else if (man != 0 && nashi != 0){
-					sprintf_s(output, MAX_TEXT_LEN * sizeof(char), "（約%d万%d円）",man, nashi);
-				}
-				else{
-					sprintf_s(output, MAX_TEXT_LEN * sizeof(char), "（約%d円）", nashi);
-				}
-			}
-            else if (unit == UNIT_M){
-                if (chou !=0 && oku != 0 && man != 0){
-					sprintf_s(output, MAX_TEXT_LEN * sizeof(char), "（約%d兆%d億%d万円）",chou, oku, man);
-				}
-				else if (oku != 0 && man != 0){
-					sprintf_s(output, MAX_TEXT_LEN * sizeof(char), "（約%d億%d万円）",oku, man);
-				}
-				else{
-					sprintf_s(output, MAX_TEXT_LEN * sizeof(char), "（約%d万円）",man);
-				}
-            }
-            else if (unit == UNIT_O){
-				if (chou !=0 && oku != 0){
-					sprintf_s(output, MAX_TEXT_LEN * sizeof(char), "（約%d兆%d億円）",chou, oku);
-				}
-				else{
-					sprintf_s(output, MAX_TEXT_LEN * sizeof(char), "（約%d億円）", oku);
-				}
-            }
-            else if (unit == UNIT_C){
-                sprintf_s(output, MAX_TEXT_LEN * sizeof(char), "（約%d兆円）", chou);
-            }
+			create_output_str(output, chou, oku, man, nashi);
+			
             
             /*Copying output string to clipboard*/
 			const size_t output_len = strlen(output) + 1;
@@ -251,17 +248,17 @@ void show_error(error_type error){
 /*
 This function asks user to put a currency rate, and stores in the adress given as a parameter.
 */
-void ask_and_set_currency_rate(float *rate)
+void ask_and_set_currency_rate(double *rate)
 {
 	for (;;){
 		system("cls");
 		printf("\n");
-		printf("==== Currency Converter v1.0 ==== \n");
+		printf("==== %s ==== \n", VERSION);
 		printf("\n");
 		printf("為替レートを入力してください。\n");
 		printf(">: ");
 		
-		scanf_s("%f", rate);
+		scanf_s("%lf", rate);
 		
 		// the Currency Rate must be a positive value.
 		if (*rate < 0.0){
@@ -272,4 +269,62 @@ void ask_and_set_currency_rate(float *rate)
 			break;
 		}
 	}
+}
+
+void mold_number(int* lower_unit_num, int* higher_unit_num){
+	double d;
+	
+	/* When the number in higher unit is more than 3 digits*/
+	if (*higher_unit_num > 100){
+		if (*lower_unit_num >= 5000){
+			*higher_unit_num += 1;
+		}
+		
+		*lower_unit_num = 0;
+	}else{ /* Round up for the 1st and 10th digits*/
+		if (*lower_unit_num >= 100){
+			int i;
+			for (i = 0; i < 2 ; i = i++){
+				double d = (double)*lower_unit_num / 10.0;
+				*lower_unit_num = round(d);
+			}
+			
+			*lower_unit_num *= 100;
+		}
+	}
+}
+
+void create_output_str(char *o_str, int chou, int oku, int man, int nashi){
+	char buffer1[MAX_TEXT_LEN] = {0};
+	char buffer2[MAX_TEXT_LEN] = {0};
+	
+	sprintf_s(buffer1, MAX_TEXT_LEN * sizeof(char), "（約");
+	
+	if (chou != 0){
+		sprintf_s(buffer2, MAX_TEXT_LEN * sizeof(char), "%d兆", chou);
+		strcat_s(buffer1, MAX_TEXT_LEN * sizeof(char), buffer2);
+		memset(buffer2, 0, MAX_TEXT_LEN * sizeof(char));
+	}
+	
+	if (oku != 0){
+		sprintf_s(buffer2, MAX_TEXT_LEN * sizeof(char), "%d億", oku);
+		strcat_s(buffer1, MAX_TEXT_LEN * sizeof(char), buffer2);
+		memset(buffer2, 0, MAX_TEXT_LEN * sizeof(char));
+	}
+	
+	if (man != 0){
+		sprintf_s(buffer2, MAX_TEXT_LEN * sizeof(char), "%d万", man);
+		strcat_s(buffer1, MAX_TEXT_LEN * sizeof(char), buffer2);
+		memset(buffer2, 0, MAX_TEXT_LEN * sizeof(char));
+	}
+	
+	if (nashi != 0){
+		sprintf_s(buffer2, MAX_TEXT_LEN * sizeof(char), "%d", nashi);
+		strcat_s(buffer1, MAX_TEXT_LEN * sizeof(char), buffer2);
+		memset(buffer2, 0, MAX_TEXT_LEN * sizeof(char));
+	}
+	
+	strcat_s(buffer1, MAX_TEXT_LEN * sizeof(char), "円）");
+	
+	strcpy(o_str, buffer1);
 }
