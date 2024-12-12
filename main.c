@@ -8,16 +8,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h> // round()
+#include <math.h> /* round() */
 
-#include "tk_string.h" // my own snipets for string related functions. This is for string replacement.
+#include "tk_string.h" /* tkstr_replace() */
 
 #define MAX_TEXT_LEN 100
 #define VERSION "Currency Converter v1.1"
 
 typedef enum{
-    ERROR_INVALID_UNIT, // Unknown unit specifier passed
-	ERROR_INVALID_CR, 	// invalid currency rate
+    ERROR_INVALID_UNIT,   /* Unknown unit specifier passed */
+	ERROR_INVALID_CR, 	/* invalid currency rate */
 } error_type;
 
 enum{
@@ -32,22 +32,23 @@ void show_error(error_type error);
 void ask_and_set_currency_rate(double *rate);
 void mold_number(int* lower_unit_num, int* higher_unit_num);
 void create_output_str(char* o_str, int chou, int oku, int man, int nashi);
+double round(double x);
 
-int main(char argc, char** argv){
+int main(void){
     double currency_rate = 0.0;
 	
 	unsigned int dollar;
 	unsigned int yen;
-        
-	char input[MAX_TEXT_LEN] = {0}; 	// User input string
-	char output[MAX_TEXT_LEN] = {0}; 	// Output string
-	char *temp; 						// The cooked string bt tkstr lib
+    
+	char input[MAX_TEXT_LEN] = {0}; 	/* User input string */
+	char output[MAX_TEXT_LEN] = {0};    /* Output string */
+	char *temp; 						/* The cooked string bt tkstr lib */
 	
-	int unit; 							// The unit that user specify
-	int chou, oku, man, nashi; 			// These are Japanese number unit.
+	int unit; 						  /* The unit that user specify */
+	int chou, oku, man, nashi; 		 /* These are Japanese number unit. */
 	
-	int *lower_unit_num = 0; // This is for number molding
-	int *higher_unit_num = 0; // This is for number molding
+	int *lower_unit_num = 0;            /* This is for number molding */
+	int *higher_unit_num = 0;           /* This is for number molding */
     
 	ask_and_set_currency_rate(&currency_rate);
     
@@ -59,7 +60,7 @@ int main(char argc, char** argv){
 			man = 0;
 			nashi = 0;
             
-			/*Shows "how to" on screen */
+			/* Shows "how to" on screen */
             system("cls");
 			printf("\n");
 			printf("==== %s　==== \n", VERSION);
@@ -72,7 +73,7 @@ int main(char argc, char** argv){
 			printf("\n");
             printf("アプリケーションを終了するには「Q」を入力してください。\n");
 			printf("\n");
-			printf("設定レートを終了するには「R」を入力してください。\n");
+			printf("設定レートを変更するには「R」を入力してください。\n");
 			printf("\n");
 			
 			/* Shows a last output on screen if any */
@@ -87,7 +88,7 @@ int main(char argc, char** argv){
             printf(">: ");
             scanf_s("%s", input, MAX_TEXT_LEN);
 			
-            if (strcmp(input, "Q") == 0) // note: strcmp returns 0 when matches.
+            if (strcmp(input, "Q") == 0) /* note: strcmp returns 0 when matches. */
                 break;
 			else if (strcmp(input, "R") == 0){
 				ask_and_set_currency_rate(&currency_rate);
@@ -117,10 +118,10 @@ int main(char argc, char** argv){
             }
             
             dollar = atoi(temp);
-			free(temp); // free memory address that passed from tkstr library.
+			free(temp); /* free memory address that passed from tkstr library. */
             
             double quotient, remainder;
-            double n; // This contains the value which will be separated into quotient & remaidner later
+            double n; /* This contains the value which will be separated into quotient & remaidner later */
 			int count = unit;
 			
 			yen = (double)dollar * currency_rate;
@@ -260,7 +261,7 @@ void ask_and_set_currency_rate(double *rate)
 		
 		scanf_s("%lf", rate);
 		
-		// the Currency Rate must be a positive value.
+		/* the Currency Rate must be a positive value. */
 		if (*rate < 0.0){
 			show_error(ERROR_INVALID_CR);
 			continue;
@@ -272,8 +273,6 @@ void ask_and_set_currency_rate(double *rate)
 }
 
 void mold_number(int* lower_unit_num, int* higher_unit_num){
-	double d;
-	
 	/* When the number in higher unit is more than 3 digits*/
 	if (*higher_unit_num > 100){
 		if (*lower_unit_num >= 5000){
@@ -284,7 +283,7 @@ void mold_number(int* lower_unit_num, int* higher_unit_num){
 	}else{ /* Round up for the 1st and 10th digits*/
 		if (*lower_unit_num >= 100){
 			int i;
-			for (i = 0; i < 2 ; i = i++){
+			for (i = 0; i < 2 ; i++){
 				double d = (double)*lower_unit_num / 10.0;
 				*lower_unit_num = round(d);
 			}
